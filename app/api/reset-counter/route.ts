@@ -8,20 +8,15 @@ const redis = new Redis({
 
 export async function POST() {
   try {
-    console.log('API - Resetting global counter...');
+    console.log('API - Resetting global visit counter...');
     
     const oldCount = await redis.get('total_visitors') || 0;
     console.log('API - Old count before reset:', oldCount);
     
-    // Reset the global counter
+    // Reset the global counter to 0
     await redis.set('total_visitors', 0);
     
-    // Clear all global visitor records (this is more complex, so we'll use a different approach)
-    // Instead of deleting all keys, we'll increment a reset counter to invalidate old visitor records
-    const resetId = await redis.incr('reset_counter');
-    console.log('API - Reset ID:', resetId);
-    
-    console.log('API - Global counter and visitor records invalidated');
+    console.log('API - Global visit counter reset to 0');
     
     // Add reset notification to the queue for SSE
     const resetMessage = {
@@ -29,7 +24,7 @@ export async function POST() {
       count: 0
     };
     
-    console.log('API - Adding reset message to queue:', resetMessage);
+    console.log('API - Broadcasting reset to all clients:', resetMessage);
     await redis.lpush('visitor_updates_queue', JSON.stringify(resetMessage));
     
     console.log('API - Reset completed successfully');

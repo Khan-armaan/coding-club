@@ -20,54 +20,38 @@ export async function middleware(request: NextRequest) {
                    request.headers.get('cf-ipcountry') || 
                    'unknown';
     
-    console.log('Middleware - Visitor info:', { ip, country });
+    console.log('Middleware - New visit from:', { ip, country });
     
-    // Create unique visitor identifier (more permanent)
-    const visitorId = Buffer.from(`${ip}-${userAgent}`).toString('base64').substring(0, 32);
+    // Increment counter for EVERY visit (not just unique visitors)
+    const newCount = await redis.incr('total_visitors');
     
-    // Get current reset counter to ensure we're not counting reset visitors
-    const resetCounter = await redis.get('reset_counter') || 0;
-    const globalVisitorKey = `global_visitor:${resetCounter}:${visitorId}`;
+    console.log('Middleware - Visit count incremented to:', newCount);
     
-    console.log('Middleware - Checking if visitor exists:', { visitorId, resetCounter });
+    // Create visitor info for this visit
+    const visitInfo = {
+      ip,
+      country,
+      userAgent: userAgent.substring(0, 200),
+      timestamp: Date.now()
+    };
     
-    // Check if this visitor has ever visited (globally, not just today)
-    const hasVisitedBefore = await redis.exists(globalVisitorKey);
+    // Store this visit (optional - for analytics)
+    const visitKey = `visit:${Date.now()}:${Math.random().toString(36).substring(2, 15)}`;
+    await redis.setex(visitKey, 24 * 60 * 60, JSON.stringify(visitInfo)); // Store for 24 hours
     
-    console.log('Middleware - Has visited before:', hasVisitedBefore);
+    // Send real-time update to all connected clients
+    const updateMessage = {
+      type: 'NEW_VISITOR',
+      count: newCount,
+      visitor: { country, timestamp: Date.now() }
+    };
     
-    if (!hasVisitedBefore) {
-      // This is a completely new visitor
-      console.log('Middleware - New global visitor detected!');
-      
-      // Increment global total count
-      const newCount = await redis.incr('total_visitors');
-      
-      console.log('Middleware - New global count:', newCount);
-      
-      // Store visitor details permanently (with expiration of 1 year)
-      await redis.setex(globalVisitorKey, 365 * 24 * 60 * 60, JSON.stringify({
-        ip,
-        country,
-        firstVisit: Date.now(),
-        userAgent: userAgent.substring(0, 200)
-      }));
-      
-      const updateMessage = {
-        type: 'NEW_VISITOR',
-        count: newCount,
-        visitor: { country, timestamp: Date.now() }
-      };
-      
-      console.log('Middleware - Pushing to queue:', updateMessage);
-      
-      // Add to real-time updates queue for SSE
-      await redis.lpush('visitor_updates_queue', JSON.stringify(updateMessage));
-      
-      console.log('Middleware - Successfully pushed to visitor_updates_queue');
-    } else {
-      console.log('Middleware - Returning visitor, no count increment');
-    }
+    console.log('Middleware - Broadcasting to all clients:', updateMessage);
+    
+    // Add to real-time updates queue for SSE
+    await redis.lpush('visitor_updates_queue', JSON.stringify(updateMessage));
+    
+    console.log('Middleware - Successfully broadcasted visit update');
     
     return NextResponse.next();
   } catch (error) {
