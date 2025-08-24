@@ -8,15 +8,26 @@ const redis = new Redis({
 
 export async function POST() {
   try {
+    console.log('API - Resetting counter...');
+    
+    const oldCount = await redis.get('total_visitors') || 0;
+    console.log('API - Old count before reset:', oldCount);
+    
     await redis.set('total_visitors', 0);
     await redis.del(`visitors:${new Date().toDateString()}`);
     
+    console.log('API - Counter and daily visitors cleared');
+    
     // Add reset notification to the queue for SSE
-    await redis.lpush('visitor_updates_queue', JSON.stringify({
+    const resetMessage = {
       type: 'COUNTER_RESET',
       count: 0
-    }));
+    };
     
+    console.log('API - Adding reset message to queue:', resetMessage);
+    await redis.lpush('visitor_updates_queue', JSON.stringify(resetMessage));
+    
+    console.log('API - Reset completed successfully');
     return Response.json({ success: true });
   } catch (error) {
     console.error('Reset counter error:', error);

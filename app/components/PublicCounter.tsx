@@ -5,19 +5,32 @@ const PublicCounter = () => {
   const [visitorCount, setVisitorCount] = useState(0);
 
   useEffect(() => {
+    console.log('PublicCounter - Setting up connections...');
+    
     // Fetch initial count
     fetch('/api/visitor-count')
       .then(res => res.json())
-      .then(data => setVisitorCount(data.count))
+      .then(data => {
+        console.log('PublicCounter - Initial count received:', data.count);
+        setVisitorCount(data.count);
+      })
       .catch(error => console.error('Failed to fetch initial count:', error));
 
     // Set up real-time updates
     const eventSource = new EventSource('/api/visitor-stream');
     
+    eventSource.onopen = () => {
+      console.log('PublicCounter - SSE connection opened');
+    };
+    
     eventSource.onmessage = (event) => {
       try {
+        console.log('PublicCounter - SSE message received:', event.data);
         const data = JSON.parse(event.data);
+        console.log('PublicCounter - Parsed data:', data);
+        
         if (data.type === 'INITIAL_COUNT' || data.type === 'NEW_VISITOR' || data.type === 'COUNTER_RESET') {
+          console.log('PublicCounter - Updating count to:', data.count);
           setVisitorCount(data.count);
         }
         // Ignore KEEPALIVE messages
@@ -30,7 +43,10 @@ const PublicCounter = () => {
       console.error('SSE connection error:', error);
     };
     
-    return () => eventSource.close();
+    return () => {
+      console.log('PublicCounter - Closing SSE connection');
+      eventSource.close();
+    };
   }, []);
 
   return (

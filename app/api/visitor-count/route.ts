@@ -9,6 +9,7 @@ const redis = new Redis({
 export async function GET() {
   try {
     const count = await redis.get('total_visitors') || 0;
+    console.log('API - Getting visitor count:', count);
     return Response.json({ count });
   } catch (error) {
     console.error('Get visitor count error:', error);

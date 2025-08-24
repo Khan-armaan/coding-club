@@ -8,6 +8,8 @@ const redis = new Redis({
 });
 
 export async function middleware(request: NextRequest) {
+  console.log('Middleware - Request received for:', request.nextUrl.pathname);
+  
   try {
     // Get visitor info from request
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
@@ -22,9 +24,22 @@ export async function middleware(request: NextRequest) {
     // Check if this is a new visitor today
     const isNewVisitor = await redis.sadd(todayKey, visitorId);
     
+    console.log('Middleware - Visitor check:', {
+      visitorId: visitorId.substring(0, 20) + '...',
+      country,
+      isNewVisitor,
+      todayKey
+    });
+    
     if (isNewVisitor) {
       // Increment total count
       const newCount = await redis.incr('total_visitors');
+      
+      console.log('Middleware - New visitor detected:', {
+        newCount,
+        country,
+        timestamp: new Date().toISOString()
+      });
       
       // Store visitor details
       await redis.hset(visitorKey, {
@@ -34,12 +49,18 @@ export async function middleware(request: NextRequest) {
         userAgent: userAgent.substring(0, 200)
       });
       
-      // Add to real-time updates queue for SSE
-      await redis.lpush('visitor_updates_queue', JSON.stringify({
+      const updateMessage = {
         type: 'NEW_VISITOR',
         count: newCount,
         visitor: { country, timestamp: Date.now() }
-      }));
+      };
+      
+      console.log('Middleware - Pushing to queue:', updateMessage);
+      
+      // Add to real-time updates queue for SSE
+      await redis.lpush('visitor_updates_queue', JSON.stringify(updateMessage));
+      
+      console.log('Middleware - Successfully pushed to visitor_updates_queue');
     }
     
     return NextResponse.next();

@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
       const sendInitialCount = async () => {
         try {
           const count = await redis.get('total_visitors') || 0;
+          console.log('SSE - Sending initial count:', count);
           const data = `data: ${JSON.stringify({ type: 'INITIAL_COUNT', count })}\n\n`;
           controller.enqueue(encoder.encode(data));
         } catch (error) {
@@ -28,11 +29,13 @@ export async function GET(request: NextRequest) {
 
       // Poll for updates from Redis queue
       const pollForUpdates = async () => {
+        console.log('SSE - Starting to poll for updates...');
         while (isActive) {
           try {
             // Use BRPOP for blocking pop to reduce Redis calls
             const message = await redis.rpop('visitor_updates_queue');
             if (message && isActive) {
+              console.log('SSE - Received message from queue:', message);
               const data = `data: ${message}\n\n`;
               controller.enqueue(encoder.encode(data));
             }
@@ -50,6 +53,7 @@ export async function GET(request: NextRequest) {
             }
           }
         }
+        console.log('SSE - Polling stopped');
       };
 
       // Send keepalive messages every 30 seconds

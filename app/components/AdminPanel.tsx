@@ -9,27 +9,35 @@ const AdminPanel = () => {
   const [recentVisitors, setRecentVisitors] = useState<Visitor[]>([]);
 
   useEffect(() => {
+    console.log('AdminPanel - Setting up connections...');
     const eventSource = new EventSource('/api/visitor-stream');
     
     eventSource.onopen = () => {
+      console.log('AdminPanel - SSE connection opened');
       setIsConnected(true);
     };
     
     eventSource.onmessage = (event) => {
       try {
+        console.log('AdminPanel - SSE message received:', event.data);
         const data = JSON.parse(event.data);
+        console.log('AdminPanel - Parsed data:', data);
         
         if (data.type === 'INITIAL_COUNT') {
+          console.log('AdminPanel - Setting initial count:', data.count);
           setVisitorCount(data.count);
         } else if (data.type === 'NEW_VISITOR') {
+          console.log('AdminPanel - New visitor, count:', data.count, 'visitor:', data.visitor);
           setVisitorCount(data.count);
           setRecentVisitors(prev => [data.visitor, ...prev.slice(0, 9)]);
           
           // Play sound if threshold reached
           if (data.count % threshold === 0) {
+            console.log('AdminPanel - Threshold reached, playing sound');
             playWelcomeSound();
           }
         } else if (data.type === 'COUNTER_RESET') {
+          console.log('AdminPanel - Counter reset');
           setVisitorCount(0);
           setRecentVisitors([]);
         }
@@ -40,10 +48,14 @@ const AdminPanel = () => {
     };
     
     eventSource.onerror = () => {
+      console.log('AdminPanel - SSE connection error');
       setIsConnected(false);
     };
     
-    return () => eventSource.close();
+    return () => {
+      console.log('AdminPanel - Closing SSE connection');
+      eventSource.close();
+    };
   }, [threshold]);
 
   const playWelcomeSound = () => {
@@ -71,10 +83,17 @@ const AdminPanel = () => {
   };
 
   const resetCounter = async () => {
+    console.log('AdminPanel - Resetting counter...');
     try {
-      await fetch('/api/reset-counter', { method: 'POST' });
-      setVisitorCount(0);
-      setRecentVisitors([]);
+      const response = await fetch('/api/reset-counter', { method: 'POST' });
+      const result = await response.json();
+      console.log('AdminPanel - Reset response:', result);
+      
+      if (result.success) {
+        setVisitorCount(0);
+        setRecentVisitors([]);
+        console.log('AdminPanel - Counter reset successfully');
+      }
     } catch (error) {
       console.error('Reset failed:', error);
     }
