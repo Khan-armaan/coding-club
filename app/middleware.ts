@@ -34,8 +34,8 @@ export async function middleware(request: NextRequest) {
         userAgent: userAgent.substring(0, 200)
       });
       
-      // Publish to real-time channel
-      await redis.publish('visitor_updates', JSON.stringify({
+      // Add to real-time updates queue for SSE
+      await redis.lpush('visitor_updates_queue', JSON.stringify({
         type: 'NEW_VISITOR',
         count: newCount,
         visitor: { country, timestamp: Date.now() }

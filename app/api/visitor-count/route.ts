@@ -7,20 +7,11 @@ const redis = new Redis({
 });
 
 export async function GET() {
-  const count = await redis.get('total_visitors') || 0;
-  return Response.json({ count });
-}
-
-// app/api/reset-counter/route.ts
-export async function POST() {
-  await redis.set('total_visitors', 0);
-  await redis.del(`visitors:${new Date().toDateString()}`);
-  
-  // Notify all connected clients
-  await redis.publish('visitor_updates', JSON.stringify({
-    type: 'COUNTER_RESET',
-    count: 0
-  }));
-  
-  return Response.json({ success: true });
+  try {
+    const count = await redis.get('total_visitors') || 0;
+    return Response.json({ count });
+  } catch (error) {
+    console.error('Get visitor count error:', error);
+    return Response.json({ count: 0, error: 'Failed to fetch count' }, { status: 500 });
+  }
 }

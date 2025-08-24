@@ -16,18 +16,26 @@ const AdminPanel = () => {
     };
     
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'INITIAL_COUNT') {
-        setVisitorCount(data.count);
-      } else if (data.type === 'NEW_VISITOR') {
-        setVisitorCount(data.count);
-        setRecentVisitors(prev => [data.visitor, ...prev.slice(0, 9)]);
+      try {
+        const data = JSON.parse(event.data);
         
-        // Play sound if threshold reached
-        if (data.count % threshold === 0) {
-          playWelcomeSound();
+        if (data.type === 'INITIAL_COUNT') {
+          setVisitorCount(data.count);
+        } else if (data.type === 'NEW_VISITOR') {
+          setVisitorCount(data.count);
+          setRecentVisitors(prev => [data.visitor, ...prev.slice(0, 9)]);
+          
+          // Play sound if threshold reached
+          if (data.count % threshold === 0) {
+            playWelcomeSound();
+          }
+        } else if (data.type === 'COUNTER_RESET') {
+          setVisitorCount(0);
+          setRecentVisitors([]);
         }
+        // Ignore KEEPALIVE and other message types
+      } catch (error) {
+        console.error('Failed to parse SSE message:', error);
       }
     };
     

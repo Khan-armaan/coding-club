@@ -8,16 +8,26 @@ const PublicCounter = () => {
     // Fetch initial count
     fetch('/api/visitor-count')
       .then(res => res.json())
-      .then(data => setVisitorCount(data.count));
+      .then(data => setVisitorCount(data.count))
+      .catch(error => console.error('Failed to fetch initial count:', error));
 
     // Set up real-time updates
     const eventSource = new EventSource('/api/visitor-stream');
     
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'INITIAL_COUNT' || data.type === 'NEW_VISITOR') {
-        setVisitorCount(data.count);
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'INITIAL_COUNT' || data.type === 'NEW_VISITOR' || data.type === 'COUNTER_RESET') {
+          setVisitorCount(data.count);
+        }
+        // Ignore KEEPALIVE messages
+      } catch (error) {
+        console.error('Failed to parse SSE message:', error);
       }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
     };
     
     return () => eventSource.close();
