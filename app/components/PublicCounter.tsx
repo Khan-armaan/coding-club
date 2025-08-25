@@ -6,20 +6,30 @@ const PublicCounter = () => {
   const [visitorCount, setVisitorCount] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
   const [hasShownPopup, setHasShownPopup] = useState(false);
+  const [hasTrackedVisit, setHasTrackedVisit] = useState(false);
 
+  // Effect to track visit only once
   useEffect(() => {
-    console.log('PublicCounter - Setting up counter polling and tracking visit...');
-    
-    // Track this visit first
-    const trackVisit = async () => {
-      try {
-        console.log('PublicCounter - Tracking visit...');
-        await fetch('/api/track-visit', { method: 'POST' });
-        console.log('PublicCounter - Visit tracked successfully');
-      } catch (error) {
-        console.error('PublicCounter - Failed to track visit:', error);
-      }
-    };
+    if (!hasTrackedVisit) {
+      console.log('PublicCounter - Tracking visit...');
+      
+      const trackVisit = async () => {
+        try {
+          await fetch('/api/track-visit', { method: 'POST' });
+          console.log('PublicCounter - Visit tracked successfully');
+          setHasTrackedVisit(true);
+        } catch (error) {
+          console.error('PublicCounter - Failed to track visit:', error);
+        }
+      };
+      
+      trackVisit();
+    }
+  }, [hasTrackedVisit]);
+
+  // Effect to set up polling for counter updates
+  useEffect(() => {
+    console.log('PublicCounter - Setting up counter polling...');
     
     // Function to fetch current counter value
     const fetchCurrentCount = async () => {
@@ -40,25 +50,18 @@ const PublicCounter = () => {
       }
     };
     
-    // Track the visit first, then start polling
-    trackVisit().then(() => {
-      // Fetch initial count after tracking visit
-      fetchCurrentCount();
-      
-      // Set up polling every 1 second
-      const counterInterval = setInterval(fetchCurrentCount, 1000);
-      
-      return () => {
-        console.log('PublicCounter - Cleaning up polling');
-        clearInterval(counterInterval);
-      };
-    });
+    // Fetch initial count
+    fetchCurrentCount();
     
-    // Cleanup function for the outer useEffect
+    // Set up polling every 1 second
+    const counterInterval = setInterval(fetchCurrentCount, 1000);
+    
+    // Cleanup function
     return () => {
-      console.log('PublicCounter - Component unmounting');
+      console.log('PublicCounter - Cleaning up polling');
+      clearInterval(counterInterval);
     };
-  }, );
+  }, [hasShownPopup]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">

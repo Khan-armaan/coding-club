@@ -1,18 +1,51 @@
 // lib/counter.ts
-// Upstash Redis visitor counter
-import { Redis } from '@upstash/redis';
+// In-memory visitor counter using singleton pattern
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+class VisitorCounter {
+  private static instance: VisitorCounter;
+  private count: number = 0;
 
-const COUNTER_KEY = 'visitor_counter';
+  private constructor() {
+    // Private constructor to prevent instantiation
+  }
+
+  public static getInstance(): VisitorCounter {
+    if (!VisitorCounter.instance) {
+      VisitorCounter.instance = new VisitorCounter();
+    }
+    return VisitorCounter.instance;
+  }
+
+  public getCount(): number {
+    return this.count;
+  }
+
+  public incrementCount(): number {
+    this.count++;
+    console.log('Counter incremented to:', this.count);
+    return this.count;
+  }
+
+  public resetCount(): number {
+    const oldCount = this.count;
+    this.count = 0;
+    console.log('Counter reset from', oldCount, 'to 0');
+    return oldCount;
+  }
+
+  public setCount(count: number): void {
+    this.count = count;
+    console.log('Counter set to:', count);
+  }
+}
+
+// Export functions that use the singleton instance
+const counter = VisitorCounter.getInstance();
 
 export async function getCount(): Promise<number> {
   try {
-    const count = await redis.get(COUNTER_KEY);
-    return count ? Number(count) : 0;
+    const count = counter.getCount();
+    return count;
   } catch (error) {
     console.error('Error getting count:', error);
     return 0;
@@ -21,8 +54,7 @@ export async function getCount(): Promise<number> {
 
 export async function incrementCount(): Promise<number> {
   try {
-    const newCount = await redis.incr(COUNTER_KEY);
-    console.log('Counter incremented to:', newCount);
+    const newCount = counter.incrementCount();
     return newCount;
   } catch (error) {
     console.error('Error incrementing count:', error);
@@ -32,9 +64,7 @@ export async function incrementCount(): Promise<number> {
 
 export async function resetCount(): Promise<number> {
   try {
-    const oldCount = await getCount();
-    await redis.set(COUNTER_KEY, 0);
-    console.log('Counter reset from', oldCount, 'to 0');
+    const oldCount = counter.resetCount();
     return oldCount;
   } catch (error) {
     console.error('Error resetting count:', error);
@@ -44,8 +74,7 @@ export async function resetCount(): Promise<number> {
 
 export async function setCount(count: number): Promise<void> {
   try {
-    await redis.set(COUNTER_KEY, count);
-    console.log('Counter set to:', count);
+    counter.setCount(count);
   } catch (error) {
     console.error('Error setting count:', error);
   }
