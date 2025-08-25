@@ -14,6 +14,24 @@ const AdminPanel = () => {
     let eventSource: EventSource;
     let reconnectInterval: NodeJS.Timeout | undefined;
     
+    // Function to fetch current counter value
+    const fetchCurrentCount = async () => {
+      try {
+        const response = await fetch('/api/visitor-count');
+        const data = await response.json();
+        console.log('AdminPanel - Periodic count update:', data.count);
+        setVisitorCount(data.count);
+      } catch (error) {
+        console.error('AdminPanel - Failed to fetch current count:', error);
+      }
+    };
+    
+    // Set up periodic counter updates every 1 second
+    const counterUpdateInterval = setInterval(fetchCurrentCount, 1000);
+    
+    // Also fetch initial count immediately
+    fetchCurrentCount();
+    
     const connectSSE = () => {
       eventSource = new EventSource('/api/visitor-stream');
       
@@ -81,6 +99,9 @@ const AdminPanel = () => {
       }
       if (reconnectInterval) {
         clearInterval(reconnectInterval);
+      }
+      if (counterUpdateInterval) {
+        clearInterval(counterUpdateInterval);
       }
     };
   }, [threshold]);
