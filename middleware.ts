@@ -22,36 +22,50 @@ export async function middleware(request: NextRequest) {
     
     console.log('Middleware - New visit from:', { ip, country });
     
-    // Increment counter for EVERY visit (not just unique visitors)
-    const newCount = await redis.incr('total_visitors');
+    // Create unique visitor identifier with reset generation
+    const visitorId = Buffer.from(`${ip}-${userAgent}`).toString('base64').substring(0, 32);
+    const resetGeneration = await redis.get('reset_generation') || 0;
+    const uniqueVisitorKey = `unique_visitor:${resetGeneration}:${visitorId}`;
     
-    console.log('Middleware - Visit count incremented to:', newCount);
+    console.log('Middleware - Checking if unique visitor:', { 
+      visitorId: visitorId.substring(0, 10) + '...', 
+      resetGeneration 
+    });
     
-    // Create visitor info for this visit
-    const visitInfo = {
+    // Check if this is a new unique visitor (use Redis SET with NX to ensure atomicity)
+    const wasNewVisitor = await redis.set(uniqueVisitorKey, JSON.stringify({
       ip,
       country,
       userAgent: userAgent.substring(0, 200),
-      timestamp: Date.now()
-    };
+      firstVisit: Date.now()
+    }), { 
+      ex: 365 * 24 * 60 * 60, // Expire after 1 year
+      nx: true // Only set if key doesn't exist
+    });
     
-    // Store this visit (optional - for analytics)
-    const visitKey = `visit:${Date.now()}:${Math.random().toString(36).substring(2, 15)}`;
-    await redis.setex(visitKey, 24 * 60 * 60, JSON.stringify(visitInfo)); // Store for 24 hours
-    
-    // Send real-time update to all connected clients
-    const updateMessage = {
-      type: 'NEW_VISITOR',
-      count: newCount,
-      visitor: { country, timestamp: Date.now() }
-    };
-    
-    console.log('Middleware - Broadcasting to all clients:', updateMessage);
-    
-    // Add to real-time updates queue for SSE
-    await redis.lpush('visitor_updates_queue', JSON.stringify(updateMessage));
-    
-    console.log('Middleware - Successfully broadcasted visit update');
+    if (wasNewVisitor === 'OK') {
+      // This is a completely new unique visitor
+      const newCount = await redis.incr('total_visitors');
+      
+      console.log('Middleware - NEW UNIQUE VISITOR! Count incremented to:', newCount);
+      
+      // Send real-time update to all connected clients
+      const updateMessage = {
+        type: 'NEW_VISITOR',
+        count: newCount,
+        visitor: { country, timestamp: Date.now() }
+      };
+      
+      console.log('Middleware - Broadcasting to all clients:', updateMessage);
+      
+      // Push to FRONT of queue (LPUSH) so it's processed immediately
+      const queueLength = await redis.lpush('visitor_updates_queue', JSON.stringify(updateMessage));
+      console.log('Middleware - Queue length after push:', queueLength);
+      
+      console.log('Middleware - Successfully broadcasted new unique visitor update');
+    } else {
+      console.log('Middleware - Returning visitor detected, no count increment');
+    }
     
     return NextResponse.next();
   } catch (error) {

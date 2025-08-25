@@ -10,51 +10,78 @@ const AdminPanel = () => {
 
   useEffect(() => {
     console.log('AdminPanel - Setting up connections...');
-    const eventSource = new EventSource('/api/visitor-stream');
     
-    eventSource.onopen = () => {
-      console.log('AdminPanel - SSE connection opened');
-      setIsConnected(true);
-    };
+    let eventSource: EventSource;
+    let reconnectInterval: NodeJS.Timeout | undefined;
     
-    eventSource.onmessage = (event) => {
-      try {
-        console.log('AdminPanel - SSE message received:', event.data);
-        const data = JSON.parse(event.data);
-        console.log('AdminPanel - Parsed data:', data);
-        
-        if (data.type === 'INITIAL_COUNT') {
-          console.log('AdminPanel - Setting initial count:', data.count);
-          setVisitorCount(data.count);
-        } else if (data.type === 'NEW_VISITOR') {
-          console.log('AdminPanel - New visitor, count:', data.count, 'visitor:', data.visitor);
-          setVisitorCount(data.count);
-          setRecentVisitors(prev => [data.visitor, ...prev.slice(0, 9)]);
-          
-          // Play sound if threshold reached
-          if (data.count % threshold === 0) {
-            console.log('AdminPanel - Threshold reached, playing sound');
-            playWelcomeSound();
-          }
-        } else if (data.type === 'COUNTER_RESET') {
-          console.log('AdminPanel - Counter reset');
-          setVisitorCount(0);
-          setRecentVisitors([]);
+    const connectSSE = () => {
+      eventSource = new EventSource('/api/visitor-stream');
+      
+      eventSource.onopen = () => {
+        console.log('AdminPanel - SSE connection opened');
+        setIsConnected(true);
+        // Clear reconnection interval if connection is successful
+        if (reconnectInterval) {
+          clearInterval(reconnectInterval);
+          reconnectInterval = undefined;
         }
-        // Ignore KEEPALIVE and other message types
-      } catch (error) {
-        console.error('Failed to parse SSE message:', error);
-      }
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          console.log('AdminPanel - SSE message received:', event.data);
+          const data = JSON.parse(event.data);
+          console.log('AdminPanel - Parsed data:', data);
+          
+          if (data.type === 'INITIAL_COUNT') {
+            console.log('AdminPanel - Setting initial count:', data.count);
+            setVisitorCount(data.count);
+          } else if (data.type === 'NEW_VISITOR') {
+            console.log('AdminPanel - New visitor, count:', data.count, 'visitor:', data.visitor);
+            setVisitorCount(data.count);
+            setRecentVisitors(prev => [data.visitor, ...prev.slice(0, 9)]);
+            
+            // Play sound if threshold reached
+            if (data.count % threshold === 0) {
+              console.log('AdminPanel - Threshold reached, playing sound');
+              playWelcomeSound();
+            }
+          } else if (data.type === 'COUNTER_RESET') {
+            console.log('AdminPanel - Counter reset');
+            setVisitorCount(0);
+            setRecentVisitors([]);
+          }
+          // Ignore KEEPALIVE and other message types
+        } catch (error) {
+          console.error('Failed to parse SSE message:', error);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.log('AdminPanel - SSE connection error:', error);
+        setIsConnected(false);
+        eventSource.close();
+        
+        // Attempt to reconnect every 3 seconds
+        if (!reconnectInterval) {
+          reconnectInterval = setInterval(() => {
+            console.log('AdminPanel - Attempting to reconnect...');
+            connectSSE();
+          }, 3000);
+        }
+      };
     };
     
-    eventSource.onerror = () => {
-      console.log('AdminPanel - SSE connection error');
-      setIsConnected(false);
-    };
+    connectSSE();
     
     return () => {
-      console.log('AdminPanel - Closing SSE connection');
-      eventSource.close();
+      console.log('AdminPanel - Cleaning up connections');
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (reconnectInterval) {
+        clearInterval(reconnectInterval);
+      }
     };
   }, [threshold]);
 

@@ -8,85 +8,90 @@ const redis = new Redis({
 });
 
 export async function GET(request: NextRequest) {
-  const encoder = new TextEncoder();
-  let isActive = true;
+  console.log('SSE - New client connected');
   
   const stream = new ReadableStream({
     start(controller) {
-      // Send initial visitor count
+      const encoder = new TextEncoder();
+      let isActive = true;
+
+      // Send initial count immediately
       const sendInitialCount = async () => {
         try {
           const count = await redis.get('total_visitors') || 0;
           console.log('SSE - Sending initial count:', count);
-          const data = `data: ${JSON.stringify({ type: 'INITIAL_COUNT', count })}\n\n`;
+          const data = `data: ${JSON.stringify({ type: 'INITIAL_COUNT', count: parseInt(count.toString()) })}\n\n`;
           controller.enqueue(encoder.encode(data));
         } catch (error) {
-          console.error('Failed to send initial count:', error);
+          console.error('SSE - Failed to send initial count:', error);
         }
       };
 
-      sendInitialCount();
-
-      // Poll for updates from Redis queue
-      const pollForUpdates = async () => {
-        console.log('SSE - Starting to poll for updates...');
+      // Poll for new messages from the queue
+      const pollMessages = async () => {
+        console.log('SSE - Starting message polling...');
+        
         while (isActive) {
           try {
-            // Use BRPOP for blocking pop to reduce Redis calls
+            // Check for messages in the queue
             const message = await redis.rpop('visitor_updates_queue');
+            
             if (message && isActive) {
-              console.log('SSE - Received message from queue:', message);
-              const data = `data: ${message}\n\n`;
-              controller.enqueue(encoder.encode(data));
+              console.log('SSE - Received from queue:', message);
+              try {
+                const data = `data: ${message}\n\n`;
+                controller.enqueue(encoder.encode(data));
+                console.log('SSE - Message sent to client');
+              } catch (controllerError) {
+                console.error('SSE - Controller error:', controllerError);
+                isActive = false;
+                break;
+              }
             }
             
-            // Small delay to prevent overwhelming Redis
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Wait before checking again (shorter interval for better responsiveness)
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
           } catch (error) {
-            console.error('SSE polling error:', error);
-            // If connection is broken, close the stream
-            if (isActive) {
-              const errorData = `data: ${JSON.stringify({ type: 'ERROR', message: 'Connection error' })}\n\n`;
-              controller.enqueue(encoder.encode(errorData));
-              controller.close();
+            console.error('SSE - Polling error:', error);
+            // Only break if it's a critical error
+            if (error instanceof Error && error.message?.includes('Controller is already closed')) {
+              isActive = false;
               break;
             }
+            // Wait longer on error
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
+        
         console.log('SSE - Polling stopped');
       };
 
-      // Send keepalive messages every 30 seconds
-      const keepAlive = setInterval(() => {
-        if (isActive) {
-          try {
-            const keepAliveData = `data: ${JSON.stringify({ type: 'KEEPALIVE' })}\n\n`;
-            controller.enqueue(encoder.encode(keepAliveData));
-          } catch {
-            clearInterval(keepAlive);
-          }
-        } else {
-          clearInterval(keepAlive);
-        }
-      }, 30000);
+      // Start sending initial count and then poll for messages
+      sendInitialCount().then(() => {
+        pollMessages();
+      });
 
-      pollForUpdates();
+      // Cleanup function
+      return () => {
+        console.log('SSE - Client disconnected');
+        isActive = false;
+      };
     },
     
     cancel() {
-      // Cleanup when connection closes
-      isActive = false;
-      console.log('SSE connection closed');
+      console.log('SSE - Stream cancelled');
     }
   });
 
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Cache-Control',
+      'X-Accel-Buffering': 'no', // Disable nginx buffering
     },
   });
 }
