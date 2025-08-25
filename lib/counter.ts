@@ -1,5 +1,7 @@
 // lib/counter.ts
 // In-memory visitor counter using singleton pattern
+import { broadcastCountUpdate } from './websocket';
+import './init'; // Initialize WebSocket server
 
 class VisitorCounter {
   private static instance: VisitorCounter;
@@ -23,6 +25,13 @@ class VisitorCounter {
   public incrementCount(): number {
     this.count++;
     console.log('Counter incremented to:', this.count);
+    
+    // Broadcast the update to all connected clients (WebSocket)
+    broadcastCountUpdate(this.count);
+    
+    // Also broadcast to SSE clients
+    this.broadcastToSSE(this.count);
+    
     return this.count;
   }
 
@@ -30,12 +39,31 @@ class VisitorCounter {
     const oldCount = this.count;
     this.count = 0;
     console.log('Counter reset from', oldCount, 'to 0');
+    
+    // Broadcast the update to all connected clients
+    broadcastCountUpdate(this.count);
+    this.broadcastToSSE(this.count);
+    
     return oldCount;
   }
 
   public setCount(count: number): void {
     this.count = count;
     console.log('Counter set to:', count);
+    
+    // Broadcast the update to all connected clients
+    broadcastCountUpdate(this.count);
+    this.broadcastToSSE(this.count);
+  }
+
+  private broadcastToSSE(count: number): void {
+    // Dynamic import to avoid circular dependency
+    try {
+      const { broadcastToSSE } = require('../app/api/visitor-stream/route');
+      broadcastToSSE(count);
+    } catch (error) {
+      // SSE not available, continue silently
+    }
   }
 }
 
