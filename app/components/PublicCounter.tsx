@@ -5,77 +5,48 @@ const PublicCounter = () => {
   const [visitorCount, setVisitorCount] = useState(0);
 
   useEffect(() => {
-    console.log('PublicCounter - Setting up connections...');
+    console.log('PublicCounter - Setting up counter polling and tracking visit...');
     
-    // Fetch initial count
-    const fetchInitialCount = () => {
-      fetch('/api/visitor-count')
-        .then(res => res.json())
-        .then(data => {
-          console.log('PublicCounter - Initial count received:', data.count);
-          setVisitorCount(data.count);
-        })
-        .catch(error => console.error('Failed to fetch initial count:', error));
+    // Track this visit first
+    const trackVisit = async () => {
+      try {
+        console.log('PublicCounter - Tracking visit...');
+        await fetch('/api/track-visit', { method: 'POST' });
+        console.log('PublicCounter - Visit tracked successfully');
+      } catch (error) {
+        console.error('PublicCounter - Failed to track visit:', error);
+      }
     };
     
-    fetchInitialCount();
-
-    // Set up real-time updates with reconnection
-    let eventSource: EventSource;
-    let reconnectInterval: NodeJS.Timeout | undefined;
-    
-    const connectSSE = () => {
-      eventSource = new EventSource('/api/visitor-stream');
-      
-      eventSource.onopen = () => {
-        console.log('PublicCounter - SSE connection opened');
-        // Clear reconnection interval if connection is successful
-        if (reconnectInterval) {
-          clearInterval(reconnectInterval);
-          reconnectInterval = undefined;
-        }
-      };
-      
-      eventSource.onmessage = (event) => {
-        try {
-          console.log('PublicCounter - SSE message received:', event.data);
-          const data = JSON.parse(event.data);
-          console.log('PublicCounter - Parsed data:', data);
-          
-          if (data.type === 'INITIAL_COUNT' || data.type === 'NEW_VISITOR' || data.type === 'COUNTER_RESET') {
-            console.log('PublicCounter - Updating count to:', data.count);
-            setVisitorCount(data.count);
-          }
-          // Ignore KEEPALIVE messages
-        } catch (error) {
-          console.error('Failed to parse SSE message:', error);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
-        eventSource.close();
-        
-        // Attempt to reconnect every 3 seconds
-        if (!reconnectInterval) {
-          reconnectInterval = setInterval(() => {
-            console.log('PublicCounter - Attempting to reconnect...');
-            connectSSE();
-          }, 3000);
-        }
-      };
+    // Function to fetch current counter value
+    const fetchCurrentCount = async () => {
+      try {
+        const response = await fetch('/api/visitor-count');
+        const data = await response.json();
+        console.log('PublicCounter - Count update:', data.count);
+        setVisitorCount(data.count);
+      } catch (error) {
+        console.error('PublicCounter - Failed to fetch current count:', error);
+      }
     };
     
-    connectSSE();
+    // Track the visit first, then start polling
+    trackVisit().then(() => {
+      // Fetch initial count after tracking visit
+      fetchCurrentCount();
+      
+      // Set up polling every 1 second
+      const counterInterval = setInterval(fetchCurrentCount, 1000);
+      
+      return () => {
+        console.log('PublicCounter - Cleaning up polling');
+        clearInterval(counterInterval);
+      };
+    });
     
+    // Cleanup function for the outer useEffect
     return () => {
-      console.log('PublicCounter - Cleaning up connections');
-      if (eventSource) {
-        eventSource.close();
-      }
-      if (reconnectInterval) {
-        clearInterval(reconnectInterval);
-      }
+      console.log('PublicCounter - Component unmounting');
     };
   }, []);
 

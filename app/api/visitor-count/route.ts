@@ -1,18 +1,34 @@
 // app/api/visitor-count/route.ts
-import { Redis } from '@upstash/redis';
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+import { getCount, incrementCount, setCount } from '@/lib/counter';
 
 export async function GET() {
   try {
-    const count = await redis.get('total_visitors') || 0;
-    console.log('API - Getting visitor count:', count);
-    return Response.json({ count });
+    const currentCount = getCount();
+    console.log('API - Getting visitor count:', currentCount);
+    return Response.json({ count: currentCount });
   } catch (error) {
     console.error('Get visitor count error:', error);
-    return Response.json({ count: 0, error: 'Failed to fetch count' }, { status: 500 });
+    return Response.json({ error: 'Failed to get visitor count' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    
+    if (body.action === 'increment') {
+      const newCount = incrementCount();
+      console.log('API - Counter incremented to:', newCount);
+      return Response.json({ count: newCount, action: 'incremented' });
+    } else if (body.action === 'set' && typeof body.count === 'number') {
+      setCount(body.count);
+      console.log('API - Counter set to:', body.count);
+      return Response.json({ count: body.count, action: 'set' });
+    } else {
+      return Response.json({ error: 'Invalid action' }, { status: 400 });
+    }
+  } catch (error) {
+    console.error('Post visitor count error:', error);
+    return Response.json({ error: 'Failed to update visitor count' }, { status: 500 });
   }
 }
