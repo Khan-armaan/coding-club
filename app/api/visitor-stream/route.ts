@@ -14,68 +14,78 @@ export async function GET(request: NextRequest) {
     start(controller) {
       const encoder = new TextEncoder();
       let isActive = true;
+      let pollInterval: NodeJS.Timeout;
 
-      // Send initial count immediately
+      // Send initial count with timeout
       const sendInitialCount = async () => {
         try {
-          const count = await redis.get('total_visitors') || 0;
+          const count = await Promise.race([
+            redis.get('total_visitors'),
+            new Promise(resolve => setTimeout(() => resolve(0), 5000))
+          ]).catch(() => 0) || 0;
+          
           console.log('SSE - Sending initial count:', count);
           const data = `data: ${JSON.stringify({ type: 'INITIAL_COUNT', count: parseInt(count.toString()) })}\n\n`;
-          controller.enqueue(encoder.encode(data));
+          
+          if (isActive) {
+            controller.enqueue(encoder.encode(data));
+          }
         } catch (error) {
           console.error('SSE - Failed to send initial count:', error);
         }
       };
 
-      // Poll for new messages from the queue
-      const pollMessages = async () => {
-        console.log('SSE - Starting message polling...');
+      // Poll for messages with better error handling
+      const pollMessages = () => {
+        if (!isActive) return;
         
-        while (isActive) {
-          try {
-            // Check for messages in the queue
-            const message = await redis.rpop('visitor_updates_queue');
-            
+        redis.rpop('visitor_updates_queue')
+          .then(message => {
             if (message && isActive) {
               console.log('SSE - Received from queue:', message);
-              try {
-                const data = `data: ${message}\n\n`;
-                controller.enqueue(encoder.encode(data));
-                console.log('SSE - Message sent to client');
-              } catch (controllerError) {
-                console.error('SSE - Controller error:', controllerError);
-                isActive = false;
-                break;
-              }
+              const data = `data: ${message}\n\n`;
+              controller.enqueue(encoder.encode(data));
             }
-            
-            // Wait before checking again (shorter interval for better responsiveness)
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-          } catch (error) {
+          })
+          .catch(error => {
             console.error('SSE - Polling error:', error);
-            // Only break if it's a critical error
-            if (error instanceof Error && error.message?.includes('Controller is already closed')) {
-              isActive = false;
-              break;
-            }
-            // Wait longer on error
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
+          });
         
-        console.log('SSE - Polling stopped');
+        // Schedule next poll
+        if (isActive) {
+          pollInterval = setTimeout(pollMessages, 1000);
+        }
       };
 
-      // Start sending initial count and then poll for messages
+      // Send keepalive every 25 seconds (Vercel has 30s timeout)
+      const keepAliveInterval = setInterval(() => {
+        if (isActive) {
+          try {
+            const keepAlive = `data: ${JSON.stringify({ type: 'KEEPALIVE', timestamp: Date.now() })}\n\n`;
+            controller.enqueue(encoder.encode(keepAlive));
+          } catch (error) {
+            console.error('SSE - Keepalive error:', error);
+            isActive = false;
+            clearInterval(keepAliveInterval);
+          }
+        } else {
+          clearInterval(keepAliveInterval);
+        }
+      }, 25000);
+
+      // Start processes
       sendInitialCount().then(() => {
         pollMessages();
       });
 
-      // Cleanup function
+      // Cleanup
       return () => {
         console.log('SSE - Client disconnected');
         isActive = false;
+        clearInterval(keepAliveInterval);
+        if (pollInterval) {
+          clearTimeout(pollInterval);
+        }
       };
     },
     
@@ -87,11 +97,13 @@ export async function GET(request: NextRequest) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Cache-Control, Content-Type',
       'X-Accel-Buffering': 'no', // Disable nginx buffering
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }

@@ -10,61 +10,79 @@ const redis = new Redis({
 export async function middleware(request: NextRequest) {
   console.log('Middleware - Request received for:', request.nextUrl.pathname);
   
+  // Skip API routes and static files
+  if (request.nextUrl.pathname.startsWith('/api/') || 
+      request.nextUrl.pathname.startsWith('/_next/') ||
+      request.nextUrl.pathname.includes('.')) {
+    return NextResponse.next();
+  }
+  
   try {
-    // Get visitor info from request
-    const ip = request.headers.get('x-forwarded-for') || 
-               request.headers.get('x-real-ip') || 
-               'unknown';
+    // Better IP detection for Vercel
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const realIP = request.headers.get('x-real-ip');
+    const vercelIP = request.headers.get('x-vercel-forwarded-for');
+    
+    const ip = vercelIP || forwardedFor?.split(',')[0] || realIP || 'unknown';
     const userAgent = request.headers.get('user-agent') || '';
     const country = request.headers.get('x-vercel-ip-country') || 
                    request.headers.get('cf-ipcountry') || 
                    'unknown';
     
-    console.log('Middleware - New visit from:', { ip, country });
+    console.log('Middleware - Visit from:', { ip: ip.substring(0, 15) + '...', country });
     
-    // Create unique visitor identifier with reset generation
-    const visitorId = Buffer.from(`${ip}-${userAgent}`).toString('base64').substring(0, 32);
-    const resetGeneration = await redis.get('reset_generation') || 0;
+    // Create unique visitor identifier
+    const visitorData = `${ip}-${userAgent}`;
+    const visitorId = Buffer.from(visitorData).toString('base64').substring(0, 32);
+    const resetGeneration = await redis.get('reset_generation').catch(() => 0) || 0;
     const uniqueVisitorKey = `unique_visitor:${resetGeneration}:${visitorId}`;
     
-    console.log('Middleware - Checking if unique visitor:', { 
-      visitorId: visitorId.substring(0, 10) + '...', 
-      resetGeneration 
-    });
+    console.log('Middleware - Checking visitor:', visitorId.substring(0, 10) + '...');
     
-    // Check if this is a new unique visitor (use Redis SET with NX to ensure atomicity)
-    const wasNewVisitor = await redis.set(uniqueVisitorKey, JSON.stringify({
-      ip,
-      country,
-      userAgent: userAgent.substring(0, 200),
-      firstVisit: Date.now()
-    }), { 
-      ex: 365 * 24 * 60 * 60, // Expire after 1 year
-      nx: true // Only set if key doesn't exist
-    });
+    // Check if unique visitor with timeout
+    const wasNewVisitor = await Promise.race([
+      redis.set(uniqueVisitorKey, JSON.stringify({
+        ip: ip.substring(0, 15), // Truncate for privacy
+        country,
+        userAgent: userAgent.substring(0, 200),
+        firstVisit: Date.now()
+      }), { 
+        ex: 365 * 24 * 60 * 60, // 1 year expiry
+        nx: true // Only set if doesn't exist
+      }),
+      new Promise(resolve => setTimeout(() => resolve(null), 3000)) // 3s timeout
+    ]);
     
     if (wasNewVisitor === 'OK') {
-      // This is a completely new unique visitor
-      const newCount = await redis.incr('total_visitors');
+      console.log('Middleware - NEW UNIQUE VISITOR detected!');
       
-      console.log('Middleware - NEW UNIQUE VISITOR! Count incremented to:', newCount);
+      // Increment counter with timeout
+      const newCount = await Promise.race([
+        redis.incr('total_visitors'),
+        new Promise(resolve => setTimeout(() => resolve(0), 3000))
+      ]).catch(() => 0);
       
-      // Send real-time update to all connected clients
-      const updateMessage = {
-        type: 'NEW_VISITOR',
-        count: newCount,
-        visitor: { country, timestamp: Date.now() }
-      };
+      console.log('Middleware - Counter incremented to:', newCount);
       
-      console.log('Middleware - Broadcasting to all clients:', updateMessage);
-      
-      // Push to FRONT of queue (LPUSH) so it's processed immediately
-      const queueLength = await redis.lpush('visitor_updates_queue', JSON.stringify(updateMessage));
-      console.log('Middleware - Queue length after push:', queueLength);
-      
-      console.log('Middleware - Successfully broadcasted new unique visitor update');
+      if (typeof newCount === 'number' && newCount > 0) {
+        // Add to queue with timeout
+        const updateMessage = {
+          type: 'NEW_VISITOR',
+          count: newCount,
+          visitor: { country, timestamp: Date.now() }
+        };
+        
+        await Promise.race([
+          redis.lpush('visitor_updates_queue', JSON.stringify(updateMessage)),
+          new Promise(resolve => setTimeout(() => resolve(null), 2000))
+        ]).catch(error => {
+          console.error('Queue push failed:', error);
+        });
+        
+        console.log('Middleware - Update queued successfully');
+      }
     } else {
-      console.log('Middleware - Returning visitor detected, no count increment');
+      console.log('Middleware - Returning visitor, no increment');
     }
     
     return NextResponse.next();
