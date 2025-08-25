@@ -40,7 +40,7 @@ const CelebrationPopup = ({ isOpen, onClose, count }: CelebrationPopupProps) => 
           </h2>
           
           <p className="text-lg text-gray-600 mb-4">
-            We've reached <span className="font-bold text-blue-600">{count}</span> visitors!
+            We&apos;ve reached <span className="font-bold text-blue-600">{count}</span> visitors!
           </p>
           
           <p className="text-gray-500 mb-6">

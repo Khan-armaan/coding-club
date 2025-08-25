@@ -7,7 +7,7 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-export async function GET(request: NextRequest) {
+export async function GET(_: NextRequest) {
   console.log('SSE - New client connected');
   
   const stream = new ReadableStream({
