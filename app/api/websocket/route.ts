@@ -5,7 +5,7 @@ import { getCount } from '@/lib/counter';
 
 export async function GET(request: NextRequest) {
   const io = initializeWebSocket();
-  
+  console.log(io);
   // Send current count to newly connected clients
   const currentCount = await getCount();
   
@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     new ReadableStream({
       start(controller) {
         // Set up WebSocket-like streaming
+         // @ts-ignore
         const sendData = (data: any) => {
           const chunk = `data: ${JSON.stringify(data)}\n\n`;
           controller.enqueue(new TextEncoder().encode(chunk));

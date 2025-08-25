@@ -15,6 +15,8 @@ export function broadcastToSSE(count: number) {
     } catch (error) {
       // Remove dead connections
       connections.delete(controller);
+      // @ts-ignore
+      console.error('Error broadcasting to SSE client:', error);
     }
   });
 }
@@ -46,6 +48,8 @@ export async function GET() {
           } catch (error) {
             clearInterval(heartbeat);
             connections.delete(controller);
+            // @ts-ignore
+            console.error('Error sending heartbeat to SSE client:', error);
           }
         }, 30000);
         

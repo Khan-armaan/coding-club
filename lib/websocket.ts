@@ -1,11 +1,11 @@
 // lib/websocket.ts
 import { Server } from 'socket.io';
-
+import { createServer } from 'http';
 let io: Server | null = null;
 
 export function initializeWebSocket(): Server {
   if (!io) {
-    const { createServer } = require('http');
+  
     const server = createServer();
     
     io = new Server(server, {

@@ -7,12 +7,14 @@ let io: Server;
 
 export async function GET() {
   if (!io) {
+    // @ts-ignore
     const httpServer = (global as any).httpServer;
     
     if (!httpServer) {
       // Create a simple HTTP server for Socket.IO
       const { createServer } = await import('http');
       const server = createServer();
+       // @ts-ignore
       (global as any).httpServer = server;
       
       io = new Server(server, {

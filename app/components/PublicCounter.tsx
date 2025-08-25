@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import CelebrationPopup from './CelebrationPopup';
 
+
 const PublicCounter = () => {
   const [visitorCount, setVisitorCount] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
   const [hasShownPopup, setHasShownPopup] = useState(false);
   const [hasTrackedVisit, setHasTrackedVisit] = useState(false);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [_,setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   // Effect to track visit only once
