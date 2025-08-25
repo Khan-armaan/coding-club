@@ -1,4 +1,4 @@
-// app/components/PublicCounterSSE.tsx
+// app/components/PublicCounterSSE.ts
 'use client';
 import { useState, useEffect } from 'react';
 import CelebrationPopup from './CelebrationPopup';
