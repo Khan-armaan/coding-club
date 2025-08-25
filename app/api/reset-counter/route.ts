@@ -3,12 +3,13 @@ import { resetCount, getCount } from '@/lib/counter';
 
 export async function POST() {
   try {
-    console.log('API - Resetting global counter...');
+    console.log('API - Resetting counter...');
     
-    const oldCount = resetCount();
-    console.log('API - Counter reset from:', oldCount, 'to 0');
+    const oldCount = await resetCount();
+    const newCount = await getCount();
+    console.log('API - Counter reset from:', oldCount, 'to', newCount);
     
-    return Response.json({ success: true, oldCount, newCount: getCount() });
+    return Response.json({ success: true, oldCount, newCount });
   } catch (error) {
     console.error('Reset counter error:', error);
     return Response.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });

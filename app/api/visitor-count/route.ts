@@ -3,7 +3,7 @@ import { getCount, incrementCount, setCount } from '@/lib/counter';
 
 export async function GET() {
   try {
-    const currentCount = getCount();
+    const currentCount = await getCount();
     console.log('API - Getting visitor count:', currentCount);
     return Response.json({ count: currentCount });
   } catch (error) {
@@ -17,11 +17,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     if (body.action === 'increment') {
-      const newCount = incrementCount();
+      const newCount = await incrementCount();
       console.log('API - Counter incremented to:', newCount);
       return Response.json({ count: newCount, action: 'incremented' });
     } else if (body.action === 'set' && typeof body.count === 'number') {
-      setCount(body.count);
+      await setCount(body.count);
       console.log('API - Counter set to:', body.count);
       return Response.json({ count: body.count, action: 'set' });
     } else {
