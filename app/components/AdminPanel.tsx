@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 
 const AdminPanel = () => {
   const [visitorCount, setVisitorCount] = useState(0);
-  const [threshold, setThreshold] = useState(10);
 
   useEffect(() => {
     console.log('AdminPanel - Setting up counter polling...');
@@ -30,7 +29,7 @@ const AdminPanel = () => {
       console.log('AdminPanel - Cleaning up polling');
       clearInterval(counterInterval);
     };
-  }, [threshold]);
+  }, []);
 
   const resetCounter = async () => {
     try {
@@ -50,47 +49,60 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-            <div className="px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
-              Polling Active
-            </div>
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="w-full max-w-2xl">
+        {/* Main admin container */}
+        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-xl font-light text-gray-300 tracking-[0.3em] mb-3">
+              BIAS CODING CLUB
+            </h1>
+            <p className="text-sm text-gray-400 font-mono tracking-wider">
+              ADMIN DASHBOARD
+            </p>
+            <div className="w-24 h-px bg-gradient-to-r from-transparent via-indigo-400 to-transparent mx-auto mt-3"></div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-blue-50 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-2">Live Visitor Count</h2>
-              <div className="text-4xl font-bold text-blue-600 mb-4">
-                {visitorCount.toLocaleString()}
+          {/* Counter Display */}
+          <div className="text-center mb-8">
+            <div className="relative inline-block">
+              <div className="text-7xl font-mono font-bold text-white mb-2 tracking-tight">
+                {visitorCount.toString().padStart(3, '0')}<span className="text-gray-500 text-4xl">/100</span>
               </div>
-              <p className="text-gray-600">Total unique visitors today</p>
+              <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-lg blur opacity-20 animate-pulse"></div>
+            </div>
+            <p className="text-gray-400 text-xs font-mono tracking-widest mt-2">
+              TOTAL MEMBERS
+            </p>
+          </div>
+          
+          {/* Status and Controls */}
+          <div className="flex items-center justify-between">
+            {/* Status Indicator */}
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-green-400 text-xs font-mono tracking-widest">
+                CLUB SYSTEMS ONLINE
+              </span>
             </div>
             
-            <div className="bg-purple-50 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Settings</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Alert Threshold
-                  </label>
-                  <input
-                    type="number"
-                    value={threshold}
-                    onChange={(e) => setThreshold(parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    min="1"
-                  />
-                </div>
-                <button
-                  onClick={resetCounter}
-                  className="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                >
-                  Reset Counter
-                </button>
-              </div>
+            {/* Reset Button */}
+            <button
+              onClick={resetCounter}
+              className="group relative inline-flex items-center justify-center px-4 py-2 text-xs font-mono tracking-widest text-red-400 border border-red-400/30 rounded-lg backdrop-blur-sm bg-red-900/10 hover:bg-red-900/20 transition-all duration-200"
+            >
+              <span className="relative z-10">RESET</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-red-600/0 via-red-500/10 to-red-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg"></div>
+            </button>
+          </div>
+          
+          {/* System info */}
+          <div className="mt-8 pt-6 border-t border-white/10">
+            <div className="flex justify-center space-x-8 text-xs text-gray-500 font-mono">
+              <div>POLLING: 1s</div>
+              <div>UPTIME: 24/7</div>
+              <div>STATUS: OPERATIONAL</div>
             </div>
           </div>
         </div>

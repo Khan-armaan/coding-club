@@ -25,46 +25,54 @@ const CelebrationPopup = ({ isOpen, onClose, count }: CelebrationPopupProps) => 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div 
-        className={`bg-white rounded-lg shadow-2xl p-8 max-w-md mx-4 transform transition-all duration-500 ${
+        className={`backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl shadow-2xl p-8 max-w-md mx-4 transform transition-all duration-500 ${
           animate ? 'scale-100 opacity-100' : 'scale-75 opacity-0'
         }`}
       >
         <div className="text-center">
           {/* Celebration icon */}
-          <div className="text-6xl mb-4">🎉</div>
+          <div className="text-6xl mb-6 animate-bounce">🎓</div>
           
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">
-            Congratulations!
+          <h2 className="text-3xl font-light text-white mb-2 tracking-widest">
+            MILESTONE
           </h2>
           
-          <p className="text-lg text-gray-600 mb-4">
-            We&apos;ve reached <span className="font-bold text-blue-600">{count}</span> visitors!
-          </p>
+          <h3 className="text-lg text-cyan-400 mb-6 font-mono tracking-wider">
+            BIAS CODING CLUB
+          </h3>
           
-          <p className="text-gray-500 mb-6">
-            Thank you for being part of this milestone! 🚀
-          </p>
-          
-          {/* Confetti animation */}
-          <div className="relative overflow-hidden">
-            <div className="flex justify-center space-x-2 mb-4">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-2 h-2 rounded-full bg-gradient-to-r from-yellow-400 to-red-500 animate-bounce`}
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                />
-              ))}
+          <div className="mb-6">
+            <div className="text-5xl font-mono font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-2">
+              {count.toLocaleString()}
             </div>
+            <p className="text-gray-300 text-sm font-mono tracking-wider">
+              NEW MEMBERS JOINED
+            </p>
+          </div>
+          
+          <p className="text-gray-400 text-sm mb-8 font-light">
+            Welcome to our growing community of passionate developers! Let&apos;s code, learn, and build amazing things together.
+          </p>
+          
+          {/* Animated indicators */}
+          <div className="flex justify-center space-x-2 mb-6">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="w-1 h-1 rounded-full bg-gradient-to-r from-cyan-400 to-purple-400 animate-pulse"
+                style={{ animationDelay: `${i * 0.2}s` }}
+              />
+            ))}
           </div>
           
           <button
             onClick={onClose}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-200"
+            className="group relative inline-flex items-center justify-center px-8 py-3 text-sm font-mono tracking-widest text-white border border-white/30 rounded-xl backdrop-blur-sm bg-white/5 hover:bg-white/10 transition-all duration-200"
           >
-            Awesome!
+            <span className="relative z-10">JOIN THE CLUB</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/0 via-blue-500/20 to-purple-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl"></div>
           </button>
         </div>
       </div>
