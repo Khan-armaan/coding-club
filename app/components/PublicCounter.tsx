@@ -1,8 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
+import CelebrationPopup from './CelebrationPopup';
 
 const PublicCounter = () => {
   const [visitorCount, setVisitorCount] = useState(0);
+  const [showPopup, setShowPopup] = useState(false);
+  const [hasShownPopup, setHasShownPopup] = useState(false);
 
   useEffect(() => {
     console.log('PublicCounter - Setting up counter polling and tracking visit...');
@@ -24,6 +27,13 @@ const PublicCounter = () => {
         const response = await fetch('/api/visitor-count');
         const data = await response.json();
         console.log('PublicCounter - Count update:', data.count);
+        
+        // Check if we've reached 25 and haven't shown popup yet
+        if (data.count >= 25 && !hasShownPopup) {
+          setShowPopup(true);
+          setHasShownPopup(true);
+        }
+        
         setVisitorCount(data.count);
       } catch (error) {
         console.error('PublicCounter - Failed to fetch current count:', error);
@@ -66,6 +76,13 @@ const PublicCounter = () => {
           <p className="text-gray-500">Thank you for visiting!</p>
         </div>
       </div>
+      
+      {/* Celebration Popup */}
+      <CelebrationPopup 
+        isOpen={showPopup}
+        onClose={() => setShowPopup(false)}
+        count={visitorCount}
+      />
     </div>
   );
 };
