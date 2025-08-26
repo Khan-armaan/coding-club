@@ -23,7 +23,7 @@ export function initializeWebSocket(): Server {
       });
     });
 
-    const port = process.env.SOCKET_PORT || 3001;
+    const port = process.env.SOCKET_PORT || 3007;
     server.listen(port, () => {
       console.log(`WebSocket server running on port ${port}`);
     });

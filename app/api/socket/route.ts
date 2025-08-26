@@ -38,8 +38,8 @@ export async function GET() {
         });
       });
 
-      server.listen(3001, () => {
-        console.log('Socket.IO server running on port 3001');
+      server.listen(3007, () => {
+        console.log('Socket.IO server running on port 3007');
       });
     }
   }

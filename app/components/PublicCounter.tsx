@@ -70,7 +70,7 @@ const PublicCounter = ({ audioEnabled = false }: PublicCounterProps) => {
     console.log('PublicCounter - Setting up WebSocket connection...');
     
     // Initialize Socket.IO client
-    const socketInstance = io('http://localhost:3001', {
+    const socketInstance = io('http://localhost:3007', {
       transports: ['websocket', 'polling']
     });
     
