@@ -59,17 +59,84 @@ export default function Home() {
       {showPermissionButton && (
         <div style={{
           position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 1000,
-          backgroundColor: '#007bff',
-          color: 'white',
-          padding: '10px 15px',
-          borderRadius: '5px',
-          cursor: 'pointer',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-        }} onClick={enableAudio}>
-          🔊 Enable Audio
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '40px',
+            borderRadius: '15px',
+            textAlign: 'center',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '20px'
+            }}>
+              🔊
+            </div>
+            <h2 style={{
+              color: '#333',
+              marginBottom: '15px',
+              fontSize: '24px',
+              fontWeight: 'bold'
+            }}>
+              Enable Audio Experience
+            </h2>
+            <p style={{
+              color: '#666',
+              marginBottom: '25px',
+              fontSize: '16px',
+              lineHeight: '1.5'
+            }}>
+              Allow audio to enhance your experience with sound effects and notifications when milestones are reached.
+            </p>
+            <button
+              onClick={enableAudio}
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                padding: '15px 30px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease',
+                width: '100%'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
+            >
+              Enable Audio
+            </button>
+            <button
+              onClick={() => setShowPermissionButton(false)}
+              style={{
+                backgroundColor: 'transparent',
+                color: '#666',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                marginTop: '10px',
+                width: '100%'
+              }}
+            >
+              Continue without audio
+            </button>
+          </div>
         </div>
       )}
       <PublicCounter audioEnabled={audioEnabled} />
