@@ -3,8 +3,11 @@ import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import CelebrationPopup from './CelebrationPopup';
 
+interface PublicCounterProps {
+  audioEnabled?: boolean;
+}
 
-const PublicCounter = () => {
+const PublicCounter = ({ audioEnabled = false }: PublicCounterProps) => {
   const [visitorCount, setVisitorCount] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
   const [hasShownPopup, setHasShownPopup] = useState(false);
@@ -181,6 +184,7 @@ const PublicCounter = () => {
         isOpen={showPopup}
         onClose={() => setShowPopup(false)}
         count={visitorCount}
+        audioEnabled={audioEnabled}
       />
     </div>
   );

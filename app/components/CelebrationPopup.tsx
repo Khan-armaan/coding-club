@@ -5,9 +5,10 @@ interface CelebrationPopupProps {
   isOpen: boolean;
   onClose: () => void;
   count: number;
+  audioEnabled?: boolean;
 }
 
-const CelebrationPopup = ({ isOpen, onClose, count }: CelebrationPopupProps) => {
+const CelebrationPopup = ({ isOpen, onClose, count, audioEnabled = false }: CelebrationPopupProps) => {
   const [animate, setAnimate] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
 
@@ -15,17 +16,24 @@ const CelebrationPopup = ({ isOpen, onClose, count }: CelebrationPopupProps) => 
     if (isOpen) {
       setAnimate(true);
       
-      // Play celebration audio
+      // Play celebration audio automatically if audio is enabled
       const playAudio = () => {
+        if (!audioEnabled) {
+          console.log('Audio not enabled, skipping audio playback');
+          return;
+        }
+        
         const audio = new Audio('/WhatsApp Ptt 2025-08-26 at 10.35.48 AM.ogg');
-        audio.volume = 0.9; // Set volume to 70%
+        audio.volume = 0.9; // Set volume to 90%
         
         audio.addEventListener('play', () => {
           setAudioPlaying(true);
+          console.log('Celebration audio started playing');
         });
         
         audio.addEventListener('ended', () => {
           setAudioPlaying(false);
+          console.log('Celebration audio finished');
         });
         
         audio.addEventListener('error', () => {
@@ -33,6 +41,7 @@ const CelebrationPopup = ({ isOpen, onClose, count }: CelebrationPopupProps) => 
           console.log('Audio playback failed');
         });
         
+        // Attempt to play audio automatically
         audio.play().catch((error) => {
           console.log('Audio playback failed:', error);
           setAudioPlaying(false);
@@ -53,7 +62,7 @@ const CelebrationPopup = ({ isOpen, onClose, count }: CelebrationPopupProps) => 
         setAudioPlaying(false);
       };
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, audioEnabled]);
 
   if (!isOpen) return null;
 
