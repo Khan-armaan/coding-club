@@ -85,7 +85,7 @@ const PublicCounterSSE = () => {
         setVisitorCount(data.count);
         
         // Check if we've reached 25 and haven't shown popup yet
-        if (data.count >= 25 && !hasShownPopup) {
+        if (data.count >= 2 && !hasShownPopup) {
           setShowPopup(true);
           setHasShownPopup(true);
         }

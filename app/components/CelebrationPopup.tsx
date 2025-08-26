@@ -9,16 +9,49 @@ interface CelebrationPopupProps {
 
 const CelebrationPopup = ({ isOpen, onClose, count }: CelebrationPopupProps) => {
   const [animate, setAnimate] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setAnimate(true);
+      
+      // Play celebration audio
+      const playAudio = () => {
+        const audio = new Audio('/WhatsApp Ptt 2025-08-26 at 10.35.48 AM.ogg');
+        audio.volume = 0.9; // Set volume to 70%
+        
+        audio.addEventListener('play', () => {
+          setAudioPlaying(true);
+        });
+        
+        audio.addEventListener('ended', () => {
+          setAudioPlaying(false);
+        });
+        
+        audio.addEventListener('error', () => {
+          setAudioPlaying(false);
+          console.log('Audio playback failed');
+        });
+        
+        audio.play().catch((error) => {
+          console.log('Audio playback failed:', error);
+          setAudioPlaying(false);
+        });
+      };
+      
+      // Small delay before playing audio for better UX
+      const audioTimer = setTimeout(playAudio, 300);
+      
       // Auto close after 5 seconds
-      const timer = setTimeout(() => {
+      const closeTimer = setTimeout(() => {
         onClose();
       }, 5000);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(audioTimer);
+        clearTimeout(closeTimer);
+        setAudioPlaying(false);
+      };
     }
   }, [isOpen, onClose]);
 
@@ -32,8 +65,15 @@ const CelebrationPopup = ({ isOpen, onClose, count }: CelebrationPopupProps) => 
         }`}
       >
         <div className="text-center">
-          {/* Celebration icon */}
-          <div className="text-6xl mb-6 animate-bounce">🎓</div>
+          {/* Celebration icon with audio indicator */}
+          <div className="relative mb-6">
+            <div className="text-6xl animate-bounce">🎓</div>
+            {audioPlaying && (
+              <div className="absolute -top-2 -right-2 text-xl animate-pulse">
+                🔊
+              </div>
+            )}
+          </div>
           
           <h2 className="text-3xl font-light text-white mb-2 tracking-widest">
             MILESTONE
