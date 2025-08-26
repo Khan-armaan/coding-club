@@ -12,15 +12,44 @@ const PublicCounter = () => {
   const [_,setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Effect to track visit only once
+  // Function to clear device tracking (for testing purposes)
+  const clearDeviceTracking = () => {
+    localStorage.removeItem('biasClubVisited');
+    localStorage.removeItem('biasClubVisitedAt');
+    console.log('Device tracking cleared');
+  };
+
+  // Add keyboard shortcut for clearing tracking (Ctrl+Shift+R)
   useEffect(() => {
-    if (!hasTrackedVisit) {
-      console.log('PublicCounter - Tracking visit...');
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'R') {
+        event.preventDefault();
+        clearDeviceTracking();
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // Effect to track visit only once per device
+  useEffect(() => {
+    // Check localStorage to see if this device has already been counted
+    const hasVisitedBefore = localStorage.getItem('biasClubVisited');
+    
+    if (!hasTrackedVisit && !hasVisitedBefore) {
+      console.log('PublicCounter - New device detected, tracking visit...');
       
       const trackVisit = async () => {
         try {
           await fetch('/api/track-visit', { method: 'POST' });
           console.log('PublicCounter - Visit tracked successfully');
+          
+          // Mark this device as counted in localStorage
+          localStorage.setItem('biasClubVisited', 'true');
+          localStorage.setItem('biasClubVisitedAt', new Date().toISOString());
+          
           setHasTrackedVisit(true);
         } catch (error) {
           console.error('PublicCounter - Failed to track visit:', error);
@@ -28,6 +57,9 @@ const PublicCounter = () => {
       };
       
       trackVisit();
+    } else if (hasVisitedBefore) {
+      console.log('PublicCounter - Device already counted, skipping tracking');
+      setHasTrackedVisit(true);
     }
   }, [hasTrackedVisit]);
 
