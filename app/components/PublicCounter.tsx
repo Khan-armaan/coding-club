@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import CelebrationPopup from './CelebrationPopup';
 
 interface PublicCounterProps {
@@ -12,7 +12,6 @@ const PublicCounter = ({ audioEnabled = false }: PublicCounterProps) => {
   const [showPopup, setShowPopup] = useState(false);
   const [hasShownPopup, setHasShownPopup] = useState(false);
   const [hasTrackedVisit, setHasTrackedVisit] = useState(false);
-  const [_, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   // Function to clear device tracking (for testing purposes)
@@ -95,8 +94,6 @@ const PublicCounter = ({ audioEnabled = false }: PublicCounterProps) => {
         setHasShownPopup(true);
       }
     });
-    
-    setSocket(socketInstance);
     
     // Cleanup function
     return () => {

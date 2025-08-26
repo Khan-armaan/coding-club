@@ -41,7 +41,7 @@ export default function Home() {
     // Check if audio context is already allowed
     const checkAudioContext = () => {
       try {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
         if (audioContext.state === 'running') {
           setAudioEnabled(true);
           setShowPermissionButton(false);
