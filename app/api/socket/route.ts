@@ -7,15 +7,14 @@ let io: Server;
 
 export async function GET() {
   if (!io) {
-    // @ts-ignore
-    const httpServer = (global as any).httpServer;
+    // @ts-expect-error - global httpServer property may not exist
+    const httpServer = (global as unknown).httpServer;
     
     if (!httpServer) {
       // Create a simple HTTP server for Socket.IO
       const { createServer } = await import('http');
       const server = createServer();
-       // @ts-ignore
-      (global as any).httpServer = server;
+      (global as Record<string, unknown>).httpServer = server;
       
       io = new Server(server, {
         path: '/api/socket',

@@ -12,7 +12,7 @@ export default function Home() {
   const enableAudio = async () => {
     try {
       // Create audio context
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      //const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
       // Create a very short silent audio to trigger permission
       const audio = new Audio();

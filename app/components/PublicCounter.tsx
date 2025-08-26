@@ -12,7 +12,7 @@ const PublicCounter = ({ audioEnabled = false }: PublicCounterProps) => {
   const [showPopup, setShowPopup] = useState(false);
   const [hasShownPopup, setHasShownPopup] = useState(false);
   const [hasTrackedVisit, setHasTrackedVisit] = useState(false);
-  const [_,setSocket] = useState<Socket | null>(null);
+  const [_, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   // Function to clear device tracking (for testing purposes)

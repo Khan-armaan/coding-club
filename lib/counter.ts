@@ -63,7 +63,7 @@ class VisitorCounter {
     
       broadcastToSSE(count);
     } catch (error) {
-      // SSE not available, continue silently
+      console.error('Error broadcasting to SSE:', error);
     }
   }
 }

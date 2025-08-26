@@ -13,8 +13,7 @@ export async function GET(request: NextRequest) {
     new ReadableStream({
       start(controller) {
         // Set up WebSocket-like streaming
-         // @ts-ignore
-        const sendData = (data: any) => {
+        const sendData = (data: unknown) => {
           const chunk = `data: ${JSON.stringify(data)}\n\n`;
           controller.enqueue(new TextEncoder().encode(chunk));
         };
