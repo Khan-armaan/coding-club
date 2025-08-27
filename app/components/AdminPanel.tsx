@@ -68,7 +68,7 @@ const AdminPanel = () => {
           <div className="text-center mb-8">
             <div className="relative inline-block">
               <div className="text-7xl font-mono font-bold text-white mb-2 tracking-tight">
-                {visitorCount.toString().padStart(3, '0')}<span className="text-gray-500 text-4xl">/100</span>
+                {visitorCount.toString().padStart(3, '0')}<span className="text-gray-500 text-4xl">/150</span>
               </div>
               <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-lg blur opacity-20 animate-pulse"></div>
             </div>

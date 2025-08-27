@@ -23,7 +23,7 @@ const CelebrationPopup = ({ isOpen, onClose, count, audioEnabled = false }: Cele
           return;
         }
         
-        const audio = new Audio('/WhatsApp Ptt 2025-08-26 at 10.35.48 AM.ogg');
+        const audio = new Audio('/WhatsApp Audio 2025-08-27 at 12.34.51 PM.mpeg.ogg');
         audio.volume = 0.9; // Set volume to 90%
         
         audio.addEventListener('play', () => {
