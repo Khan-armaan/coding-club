@@ -69,11 +69,14 @@ const PublicCounter = ({ audioEnabled = false }: PublicCounterProps) => {
   useEffect(() => {
     console.log('PublicCounter - Setting up WebSocket connection...');
     
-    // Initialize Socket.IO client
+   // Initialize Socket.IO client
     const socketInstance = io('https://codingclub.birlainstitute.co.in', {
       transports: ['websocket', 'polling']
     });
-    
+    // const socketInstance = io('http://localhost:3007', {
+    //   transports: ['websocket', 'polling']
+    // });
+
     socketInstance.on('connect', () => {
       console.log('WebSocket connected');
       setIsConnected(true);
@@ -90,8 +93,11 @@ const PublicCounter = ({ audioEnabled = false }: PublicCounterProps) => {
       
       // Check if we've reached 25 and haven't shown popup yet
       if (data.count >= 5 && !hasShownPopup) {
-        setShowPopup(true);
-        setHasShownPopup(true);
+
+        setTimeout(() => {
+          setShowPopup(true);
+          setHasShownPopup(true);
+        }, 10000);
       }
     });
     
