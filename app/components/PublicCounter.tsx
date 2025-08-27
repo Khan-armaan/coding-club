@@ -92,12 +92,12 @@ const PublicCounter = ({ audioEnabled = false }: PublicCounterProps) => {
       setVisitorCount(data.count);
       
       // Check if we've reached 25 and haven't shown popup yet
-      if (data.count >= 5 && !hasShownPopup) {
+      if (data.count >= 3 && !hasShownPopup) {
 
         setTimeout(() => {
           setShowPopup(true);
           setHasShownPopup(true);
-        }, 10000);
+        }, 5000);
       }
     });
     
